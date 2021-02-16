@@ -1,7 +1,7 @@
 const moment = require('moment');
 const DATEFORMAT = process.env.DATEFORMAT || 'YYYY-DD-MM';
 
-const getQuery = (start, end) =>
+const getQuery = (start, end, offset, limit=50) =>
     `select
         m.id,
         m.title ,
@@ -17,11 +17,14 @@ const getQuery = (start, end) =>
         m.title ,
         m."startTime" ,
         m."endTime" ,
-        m.created_at`;
+        m.created_at
+    order by m."startTime"
+    offset ${offset}
+    limit ${limit} `;
 
 module.exports = async (req, res) => {
     try {
-        const { startTime, endTime } = req.query;
+        const { startTime, endTime ,page=0} = req.query;
 
         if (!moment(startTime, DATEFORMAT).isValid() ||
             !moment(endTime, DATEFORMAT).isValid())
@@ -31,7 +34,9 @@ module.exports = async (req, res) => {
         let start = moment(startTime, DATEFORMAT).format("MM/DD/YYYY");
         let end = moment(endTime, DATEFORMAT).format("MM/DD/YYYY");
 
-        const query = getQuery(start, end);
+        const offset = page*50;
+
+        const query = getQuery(start, end,offset);
         const response = await db.query(query);
 
         res.json({ meetings: response.rows });
